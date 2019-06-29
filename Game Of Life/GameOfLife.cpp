@@ -475,7 +475,7 @@ void GameOfLife::initiateKernel() {
 	FILE *fp;
 	size_t source_size;
 	
-	char filePath[] = "/Users/ralle/Desktop/Programs/C++/GameOfLifeGit/Game Of Life/gpuKernelProgram.cl";
+	char filePath[] = "/Users/ralle/Desktop/Programs/C++/GameOfLifeGit/Game Of Life/Game Of Life/gpuKernelProgram.cl";
 	
 	
 	
