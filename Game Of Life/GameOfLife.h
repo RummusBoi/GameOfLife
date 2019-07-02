@@ -43,8 +43,8 @@ private:
 	void updateUpdateCells ();
 	void sleep (int msToSleep);
 	void initiateKernel ();
-	void runKernel (int* input, int* output, bool allocateMemory, int gen_info, cl_ulong* kernelTime, int gensPerFrame);
-	void drawCellsGpu (int* cells_array);
+	void runKernel (float* input, float* output, bool allocateMemory, int gen_info, cl_ulong* kernelTime, int gensPerFrame);
+	void drawCellsGpu (float* cells_array);
 	void check_Error (cl_int result, std::string operation);
 	void handleEvents (int* gensPerFrame);
 	

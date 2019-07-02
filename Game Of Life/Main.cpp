@@ -19,7 +19,7 @@ int main () {
 	int width = 2500;
 	int height = 1500;
 	int timeSteps = 5000;
-	int cellSize = 2;
+	int cellSize = 1;
 	int targetFPS = 60;
 	
 	bool useGPU = true;

@@ -285,6 +285,10 @@ void GameOfLife::drawCells () {
 	SDL_RenderPresent(renderer);
 }
 
+Uint32 toUint32 (float input) {
+	return Uint32(input + 2147483646);
+}
+
 void GameOfLife::sleep (int msToSleep) {
 	for(int i = 0; i < msToSleep; i++){
 //		SDL_PumpEvents();
@@ -372,19 +376,21 @@ void GameOfLife::runGameGPU() {
 	
 	int gensPerFrame = 1;
 	
-	int* cells_array;
-	cells_array = new int [width * height];
+	float* cells_array;
+	cells_array = new float [width * height];
 	srand((int)time(NULL));
 	for (int i = 0; i < width * height; i++) {
-		cells_array[i] = rand() % 100 > 90 ? 1 : 0;
+		int ran = rand() % 100;
+		cells_array[i] = ran >= 95 ? rand() % 10 : 0;
 //		cells_array[i] = rand() % 100 > (((double)(i % width)) / (double)width) * 100 / 8 + 80? 1 : 0;
 //		cells_array[i] = 0;
 	}
-	drawCellsGpu(cells_array);handleEvents(&gensPerFrame);
+	drawCellsGpu(cells_array);
+	handleEvents(&gensPerFrame);
 	cout << "Amount of cells: " << width * height << endl;
 	
-	cells_array[width * height / 2 + width / 2] = 1;
-	cells_array[width * height / 2 + width / 2 + width*2] = 1;
+	cells_array[width * height / 2 + width / 2] = 10;
+	cells_array[width * height / 2 + width / 2 + width*2 + 1] = 10;
 	
 //	cells_array[width * height / 2 + width / 2 + 2] = 1;
 //	cells_array[width * height / 2 + width / 2 + 2*width + 2] = 1;
@@ -397,13 +403,13 @@ void GameOfLife::runGameGPU() {
 	initiateKernel();
 	cout << "Done." << endl;
 	
-	int* nextGen;
-	nextGen = new int [width * height];
+	float* nextGen;
+	nextGen = new float [width * height];
 	
 	
 	cout << "Starting game loop..." << endl;
 	
-	int* cellsptr = &cells_array[0], *nextGenptr = &nextGen[0];
+	float* cellsptr = &cells_array[0], *nextGenptr = &nextGen[0];
 	drawCellsGpu(cells_array);
 	
 	Uint32 nextTime = SDL_GetTicks() + targetFPS;
@@ -423,6 +429,7 @@ void GameOfLife::runGameGPU() {
 	
 	runKernel(cellsptr, nextGenptr, true, 3, &kernelTime, gensPerFrame);
 	
+	
 	vector<thread> drawingThread;
 	drawingThread.push_back (thread(&GameOfLife::drawCellsGpu, this, cellsptr));
 	
@@ -435,7 +442,10 @@ void GameOfLife::runGameGPU() {
 		handleEvents (&gensPerFrame);
 		
 		runKernel(cellsptr, nextGenptr, false, (step) % 2, &kernelTime, gensPerFrame);
-		int* tmpptr = cellsptr;
+		
+		cout << "Change: " << nextGenptr[1000] - cellsptr[1000] << endl;
+		
+		float* tmpptr = cellsptr;
 		cellsptr = nextGenptr;
 		nextGenptr = tmpptr;
 		updatingCells.stop();
@@ -475,7 +485,7 @@ void GameOfLife::initiateKernel() {
 	FILE *fp;
 	size_t source_size;
 	
-	char filePath[] = "/Users/ralle/Desktop/Programs/C++/GameOfLifeGit/Game Of Life/gpuKernelProgram.cl";
+	char filePath[] = "/Users/ralle/Desktop/Programs/C++/GameOfLifeGit/Game Of Life/Game Of Life/gpuKernelProgram.cl";
 	
 	
 	
@@ -510,9 +520,9 @@ void GameOfLife::initiateKernel() {
 
 	//create memory objects in gpu memory:
 	
-	cells_mem_obj = clCreateBuffer(context, CL_MEM_READ_WRITE, height * width * sizeof(int), NULL, &ret);
+	cells_mem_obj = clCreateBuffer(context, CL_MEM_READ_WRITE, height * width * sizeof(float), NULL, &ret);
 	check_Error(ret, "creating buffer 1");
-	cells_result_mem_obj = clCreateBuffer(context, CL_MEM_READ_WRITE, height * width * sizeof(int), NULL, &ret);
+	cells_result_mem_obj = clCreateBuffer(context, CL_MEM_READ_WRITE, height * width * sizeof(float), NULL, &ret);
 	check_Error(ret, "creating buffer 2");
 	width_mem_obj = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, &ret);
 	check_Error(ret, "creating buffer 3");
@@ -550,7 +560,7 @@ void GameOfLife::initiateKernel() {
 	check_Error(ret, "allocating memory 6");
 }
 
-void GameOfLife::runKernel(int* input, int* output, bool allocateMemory, int gen_info, cl_ulong* kernelTime, int gensPerFrame) {
+void GameOfLife::runKernel(float* input, float* output, bool allocateMemory, int gen_info, cl_ulong* kernelTime, int gensPerFrame) {
 	cl_int ret;
 	if (gen_info == 3) {
 		gen_info = 0;
@@ -628,49 +638,17 @@ void GameOfLife::runKernel(int* input, int* output, bool allocateMemory, int gen
 	check_Error(ret, "reading buffer");
 }
 
-void GameOfLife::drawCellsGpu (int *cells_array) {
+void GameOfLife::drawCellsGpu (float *cells_array) {
 	SDL_RenderClear(renderer);
-	
-	
-	
-	double redDelay;
-	double blueDelay;
-	double greenDelay;
-	
-	for (int i = 0; i < width * height; i++) {
-		int red = (pixels[i] & 0b111111110000000000000000) >> 16;
-		int green = (pixels[i] & 0b1111111100000000) >> 8;
-		int blue = (pixels[i] & 0b11111111);
-		
-		//set delay of different colors
-		redDelay = 0.95;//(i % width) / (double) width + 0.85;
-		blueDelay = 0.95;//0.85 - (i % width) / (double) width;
-		greenDelay = 0.95;//0.85 - (i % width) / (double) width;
-		
+	float max = cells_array[0];
+	for (int i = 0; i < width * height; i++) {		
 		//set pixel value
-		pixels[i] = (Uint32)((double)red * redDelay) << 16 | (Uint32)((double)green * greenDelay) << 8 | (Uint32)((double)blue * blueDelay);
-		
-		
-		//if cell is alive, it is colored white
-		//pixels[i] = cells_array[i] == 1 ? 0xffffffff : pixels[i];
-		
-		//if cell is alive, it is colored the color of the pixel on the input image.
-		if(cells_array[i] == 1) {
-			png_byte pixel[4 * sizeof(png_byte)];
-			
-			//get scaled coordinates for pixel to read
-			int x = (int)((double)(i % width) / (double)width * (double)imgwidth) * bytes_per_pixel;
-			int y = (int)((floor(i / width)) / (double)height * (double)imgheight);
-			
-			//memcpy(pixel, &row_pointers[(int)floor((double)i / (double)width)][(i % width) * 4], sizeof(pixel));
-			
-			memcpy(pixel, &(row_pointers[y][x]), sizeof(pixel));
-			
-			pixels[i] = (Uint32)((double)pixel[0]) << 16 | (Uint32)((double)pixel[1]) << 8 | (Uint32)((double)pixel[2]);
-		}
-//		cout << "Value of " << i << ": " << pixels[i] << endl;
+		//pixels[i] = (Uint32)((double)red * redDelay) << 16 | (Uint32)((double)green * greenDelay) << 8 | (Uint32)((double)blue * blueDelay);
+		int multiplier = 20;
+		pixels[i] = (Uint32)(multiplier*cells_array[i]) << 16 | (Uint32)(multiplier*cells_array[i]) << 8 | (Uint32)(multiplier*cells_array[i]);
+		if(cells_array[i] > max) max = cells_array[i];
 	}
-	
+	cout << "Max: " << max << endl;
 	SDL_UpdateTexture(texture, NULL, pixels, sizeof(Uint32) * width);
 	SDL_RenderCopy(renderer, texture, NULL, &windowRect);
 	
