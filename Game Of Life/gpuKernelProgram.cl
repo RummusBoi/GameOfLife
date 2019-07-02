@@ -1,4 +1,4 @@
-__kernel void calNextGen (__global int *A, __global const int *width, __global const int *height, __global int *C, __global int *genInfo,
+__kernel void calNextGen (__global float *A, __global const int *width, __global const int *height, __global float *C, __global int *genInfo,
 						  __global const int *gensPerFrame) {
 	//iterate over every int in A. Calculate next gen and write it to C:
 	const int MAX_SIZE = (*width) * (*height) - 1;
@@ -7,8 +7,8 @@ __kernel void calNextGen (__global int *A, __global const int *width, __global c
 	
 	int i = get_global_id (0);
 	
-	__global int* currGen;
-	__global int* nextGen;
+	__global float* currGen;
+	__global float* nextGen;
 	
 	if ((*genInfo) == 0) {
 		currGen = A;
@@ -19,7 +19,6 @@ __kernel void calNextGen (__global int *A, __global const int *width, __global c
 	}
 	
 	//iterate over all eight cells around cell i:
-	int neighbours = 0;
 //	for (int y = (i / (*width)) - 1; y <= (i / (*width)) + 1; y++) {
 //		for (int x = i % (*width) - 1; x <= i % (*width) + 1; x++) {
 //			if (x >= 0 && x < (*width) && y >= 0 && y < (*height) && !(x == i % (*width) && y == (i / (*width)))) {
@@ -33,7 +32,10 @@ __kernel void calNextGen (__global int *A, __global const int *width, __global c
 	int x = i % (*width);
 	int y = i / (*width);
 	
+	int neighbours;
+	
 	neighbours = 0;
+	neighbours += (currGen)[i];
 	neighbours += (currGen)[x + (*width) * y - 1];
 	neighbours += (currGen)[x + (*width) * y - 1 + (*width)];
 	neighbours += (currGen)[x + (*width) * y - 1 - (*width)];
@@ -43,13 +45,10 @@ __kernel void calNextGen (__global int *A, __global const int *width, __global c
 	neighbours += (currGen)[x + (*width) * y - (*width)];
 	neighbours += (currGen)[x + (*width) * y + 1];
 
-	//check for rules
-	if (((currGen)[i] == 0 && (neighbours == 3 || neighbours == 3))) {
-		(nextGen)[i] = 1;
-	} else if ((currGen)[i] == 1 && (neighbours == 2 || neighbours == 3)) {
-		(nextGen)[i] = 1;
+	if(neighbours > 10 && neighbours < 50) {
+		nextGen[i] = currGen[i] + 0.1f;
 	} else {
-		(nextGen)[i] = 0;
+		nextGen[i] = currGen[i] - 0.1f;
 	}
-
+	if(nextGen[i] < 0) nextGen[i] = 0;
 }

@@ -644,7 +644,7 @@ void GameOfLife::drawCellsGpu (float *cells_array) {
 	for (int i = 0; i < width * height; i++) {		
 		//set pixel value
 		//pixels[i] = (Uint32)((double)red * redDelay) << 16 | (Uint32)((double)green * greenDelay) << 8 | (Uint32)((double)blue * blueDelay);
-		int multiplier = 20;
+		int multiplier = 1;
 		pixels[i] = (Uint32)(multiplier*cells_array[i]) << 16 | (Uint32)(multiplier*cells_array[i]) << 8 | (Uint32)(multiplier*cells_array[i]);
 		if(cells_array[i] > max) max = cells_array[i];
 	}
